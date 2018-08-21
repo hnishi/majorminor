@@ -1,6 +1,6 @@
 #include"nlib.h"
 
-string majorminor_version = "4.3";
+string majorminor_version = "4.4";
 /*
 ver2.0 RANGE_COM was implemented
 ver3.0 all pairs within 2.0 nm would be written in the output
@@ -8,6 +8,7 @@ ver4.0 algorithm was totally replaced --> detection of two minimum contacts betw
 ver4.1 minimum and second minimum --> calculate average of distances of two combination and choose smaller combination
 ver4.2 way of residue count was changed to improve judgement of major or minor grooves and bugs were fixed. 
 ver4.3 pair was resitricted to i +- 10 bp --> exception was generated 
+ver4.4 refactoring
 */
 
 int flag_debug = 0;
@@ -182,21 +183,23 @@ ver 4.1
    int tmp_resi1 = pair_residue[mode_combination*2] - chain_a_a + 1;
    //int tmp_resi2 = pair_residue[mode_combination_2*2] - chain_b_a + 1; # before ver4.2
    int tmp_resi2 = chain_b_b - pair_residue[mode_combination_2*2] + 1;
-   if( tmp_resi1 > tmp_resi2 ){
+   if( sqrt(sq(tmp_resi1 - tmp_resi2)) > 10 ){
+      mode_majorminor_1 = "exception";
+      cerr<<"ERROR: "<<pdbname<<endl;
+      cerr<<"ERROR: Major or minor grooves cannot be defined."<<endl;
+      cerr<<"ERROR: Difference between two nucleotides is too large (> 10). "<<endl;
+      cerr<<"ERROR: tmp_resi1 = "<<tmp_resi1<<endl;
+      cerr<<"ERROR: tmp_resi2 = "<<tmp_resi2<<endl;
+   }
+   else if( tmp_resi1 > tmp_resi2 ){
       mode_majorminor_1 = "minor";
    }
    else if( tmp_resi1 < tmp_resi2 ){
       mode_majorminor_1 = "major";
    }
    else{
+      cerr<<"ERROR: "<<pdbname<<endl;
       cerr<<"ERROR: Major or minor grooves cannot be defined."<<endl;
-      cerr<<"ERROR: tmp_resi1 = "<<tmp_resi1<<endl;
-      cerr<<"ERROR: tmp_resi2 = "<<tmp_resi2<<endl;
-   }
-   if( sqrt(sq(tmp_resi1 - tmp_resi2)) > 10 ){
-      mode_majorminor_1 = "exception";
-      cerr<<"ERROR: Major or minor grooves cannot be defined."<<endl;
-      cerr<<"ERROR: Difference between two nucleotides is too large (> 10). "<<endl;
       cerr<<"ERROR: tmp_resi1 = "<<tmp_resi1<<endl;
       cerr<<"ERROR: tmp_resi2 = "<<tmp_resi2<<endl;
    }
@@ -204,25 +207,27 @@ ver 4.1
    int tmp_resi3 = pair_residue[mode_combination*2+1] - chain_c_a + 1;
    //int tmp_resi4 = pair_residue[mode_combination_2*2+1] - chain_d_a + 1; # before ver4.2
    int tmp_resi4 = chain_d_b - pair_residue[mode_combination_2*2+1] + 1;
-   if( tmp_resi3 > tmp_resi4 ){
+   if( sqrt(sq(tmp_resi3 - tmp_resi4)) > 10 ){
+      mode_majorminor_2 = "exception";
+      cerr<<"ERROR: "<<pdbname<<endl;
+      cerr<<"ERROR: Major or minor grooves cannot be defined."<<endl;
+      cerr<<"ERROR: Difference between two nucleotides is too large (> 10). "<<endl;
+      cerr<<"ERROR: tmp_resi3 = "<<tmp_resi3<<endl;
+      cerr<<"ERROR: tmp_resi4 = "<<tmp_resi4<<endl;
+   }
+   else if( tmp_resi3 > tmp_resi4 ){
       mode_majorminor_2 = "minor";
    }
    else if( tmp_resi3 < tmp_resi4 ){
       mode_majorminor_2 = "major";
    }
    else{
+      cerr<<"ERROR: "<<pdbname<<endl;
       cerr<<"ERROR: Major or minor grooves cannot be defined."<<endl;
       cerr<<"ERROR: tmp_resi3 = "<<tmp_resi3<<endl;
       cerr<<"ERROR: tmp_resi4 = "<<tmp_resi4<<endl;
    }
    cout<<"Mode = "<<mode_majorminor_1<<"-"<<mode_majorminor_2<<endl;
-   if( sqrt(sq(tmp_resi3 - tmp_resi4)) > 10 ){
-      mode_majorminor_2 = "exception";
-      cerr<<"ERROR: Major or minor grooves cannot be defined."<<endl;
-      cerr<<"ERROR: Difference between two nucleotides is too large (> 10). "<<endl;
-      cerr<<"ERROR: tmp_resi3 = "<<tmp_resi1<<endl;
-      cerr<<"ERROR: tmp_resi4 = "<<tmp_resi2<<endl;
-   }
 
 /*
 ++++++ Output file ++++++

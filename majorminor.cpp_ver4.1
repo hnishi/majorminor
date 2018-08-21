@@ -1,0 +1,226 @@
+#include"nlib.h"
+
+/*
+VERSION majorminor 4.1
+
+ver2.0 RANGE_COM was implemented
+ver3.0 all pairs within 2.0 nm would be written in the output
+ver4.0 algorithm was totally replaced --> detection of two minimum contacts between phosphate bacbones
+ver4.1 minimum and second minimum --> calculate average of distances of two combination and choose smaller combination
+*/
+
+int flag_debug = 2;
+
+double sq(double i){
+   return i*i;
+}
+
+int majorminor(  Inp_nishi inp1 ){
+   puts("Start majorminor");
+
+/*
+++++++ Input section ++++++
+*/   
+   string pdbname = inp1.read("INPUTPDB1");
+   string outfile1 = inp1.read("OUTPUTFILE1");
+   int chain_a_a = atoi(inp1.read("CHAIN_A_a").c_str());
+   int chain_a_b = atoi(inp1.read("CHAIN_A_b").c_str());
+   int chain_b_a = atoi(inp1.read("CHAIN_B_a").c_str());
+   int chain_b_b = atoi(inp1.read("CHAIN_B_b").c_str());
+   int chain_c_a = atoi(inp1.read("CHAIN_C_a").c_str());
+   int chain_c_b = atoi(inp1.read("CHAIN_C_b").c_str());
+   int chain_d_a = atoi(inp1.read("CHAIN_D_a").c_str());
+   int chain_d_b = atoi(inp1.read("CHAIN_D_b").c_str());
+
+   FILE *fout1;
+   if((fout1 = fopen(outfile1.c_str(),"w")) == NULL ){
+      printf("cannot open output file: %s\n",outfile1.c_str());
+      exit(1);
+   }
+
+   pdb_nishi* pdb1;
+   pdb1 = new pdb_nishi(pdbname.c_str());
+   cout<<"TOTAL ATOM = "<< pdb1->total_atom<<endl;
+   cout<<"TOTAL RESIDUE = "<< pdb1->total_residue<<endl;
+
+/*
+++++++ Search closest point ++++++
+Minumum distances betwween phosphorus atoms of all phosphate backbones are calculated
+*/
+   int pair_residue[8];
+   double dist_pair[4] = {999999, 999999, 999999, 999999};
+
+   for(unsigned int i_atom = 0; i_atom < pdb1->total_atom; i_atom++){
+      if( pdb1->rnum[i_atom] >= chain_a_a && pdb1->rnum[i_atom] <= chain_a_b 
+            && pdb1->atmn[i_atom] == "P" ){ 
+         for(unsigned int j_atom = 0; j_atom < pdb1->total_atom; j_atom++){
+            if( pdb1->rnum[j_atom] >= chain_c_a && pdb1->rnum[j_atom] <= chain_c_b 
+                  && pdb1->atmn[j_atom] == "P" ){ 
+               double dist = sqrt(sq(pdb1->coox[j_atom] - pdb1->coox[i_atom])
+                     +sq(sq(pdb1->cooy[j_atom] - pdb1->cooy[i_atom]))
+                     +sq(sq(pdb1->cooz[j_atom] - pdb1->cooz[i_atom])));
+               if(dist < dist_pair[0]){
+                  dist_pair[0] = dist;
+                  pair_residue[0] = pdb1->rnum[i_atom];
+                  pair_residue[1] = pdb1->rnum[j_atom];
+                  if(flag_debug==1)cout<<"DEBUG: dist_pair[0]: "<<dist_pair[0]<<" "<<pair_residue[0]<<" "<<pair_residue[1]<<endl;
+               }
+            }
+            else if( pdb1->rnum[j_atom] >= chain_d_a && pdb1->rnum[j_atom] <= chain_d_b 
+                  && pdb1->atmn[j_atom] == "P" ){ 
+               double dist = sqrt(sq(pdb1->coox[j_atom] - pdb1->coox[i_atom])
+                     +sq(sq(pdb1->cooy[j_atom] - pdb1->cooy[i_atom]))
+                     +sq(sq(pdb1->cooz[j_atom] - pdb1->cooz[i_atom])));
+               if(dist < dist_pair[1]){
+                  dist_pair[1] = dist;
+                  pair_residue[2] = pdb1->rnum[i_atom];
+                  pair_residue[3] = pdb1->rnum[j_atom];
+                  if(flag_debug==1)cout<<"DEBUG: dist_pair[1]: "<<dist_pair[1]<<" "<<pair_residue[2]<<" "<<pair_residue[3]<<endl;
+               }
+            }
+         }
+      }
+      else if( pdb1->rnum[i_atom] >= chain_b_a && pdb1->rnum[i_atom] <= chain_b_b 
+            && pdb1->atmn[i_atom] == "P" ){ 
+         for(unsigned int j_atom = 0; j_atom < pdb1->total_atom; j_atom++){
+            if( pdb1->rnum[j_atom] >= chain_c_a && pdb1->rnum[j_atom] <= chain_c_b 
+                  && pdb1->atmn[j_atom] == "P" ){ 
+               double dist = sqrt(sq(pdb1->coox[j_atom] - pdb1->coox[i_atom])
+                     +sq(sq(pdb1->cooy[j_atom] - pdb1->cooy[i_atom]))
+                     +sq(sq(pdb1->cooz[j_atom] - pdb1->cooz[i_atom])));
+               if(dist < dist_pair[2]){
+                  dist_pair[2] = dist;
+                  pair_residue[4] = pdb1->rnum[i_atom];
+                  pair_residue[5] = pdb1->rnum[j_atom];
+                  if(flag_debug==1)cout<<"DEBUG: dist_pair[2]: "<<dist_pair[2]<<" "<<pair_residue[4]<<" "<<pair_residue[5]<<endl;
+               }
+            }
+            else if( pdb1->rnum[j_atom] >= chain_d_a && pdb1->rnum[j_atom] <= chain_d_b 
+                  && pdb1->atmn[j_atom] == "P" ){ 
+               double dist = sqrt(sq(pdb1->coox[j_atom] - pdb1->coox[i_atom])
+                     +sq(sq(pdb1->cooy[j_atom] - pdb1->cooy[i_atom]))
+                     +sq(sq(pdb1->cooz[j_atom] - pdb1->cooz[i_atom])));
+               if(dist < dist_pair[3]){
+                  dist_pair[3] = dist;
+                  pair_residue[6] = pdb1->rnum[i_atom];
+                  pair_residue[7] = pdb1->rnum[j_atom];
+                  if(flag_debug==1)cout<<"DEBUG: dist_pair[3]: "<<dist_pair[3]<<" "<<pair_residue[6]<<" "<<pair_residue[7]<<endl;
+               }
+            }
+         }
+      }
+   }
+
+
+
+/*
+++++++ Which is the mimimum and the second minimum ++++++
+*/
+/*
+   int mode_combination = -1, mode_combination_2 = -1;
+   if(dist_pair[0] <= dist_pair[1] && dist_pair[0] <= dist_pair[2] && dist_pair[0] <= dist_pair[3]){
+      mode_combination = 0;
+      mode_combination_2 = 3;
+   }
+   else if(dist_pair[1] <= dist_pair[0] && dist_pair[1] <= dist_pair[2] && dist_pair[1] <= dist_pair[3]){
+      mode_combination = 1;
+      mode_combination_2 = 2;
+   }
+   else if(dist_pair[2] <= dist_pair[0] && dist_pair[2] <= dist_pair[1] && dist_pair[2] <= dist_pair[3]){
+      mode_combination = 2;
+      mode_combination_2 = 1;
+   }
+   else if(dist_pair[3] <= dist_pair[0] && dist_pair[3] <= dist_pair[2] && dist_pair[3] <= dist_pair[1]){
+      mode_combination = 3;
+      mode_combination_2 = 0;
+   }
+   else{cerr<<"ERROR: something else"<<endl;}
+
+   if(flag_debug==2)cout<<"DEBUG"<<flag_debug<<": mode_combination = "<<mode_combination<<endl;
+   if(flag_debug==2)cout<<"DEBUG"<<flag_debug<<": minimum distance = "<<dist_pair[mode_combination]<<endl;
+   if(flag_debug==2)cout<<"DEBUG"<<flag_debug<<": residue pair = "<<pair_residue[mode_combination*2]<<"-"<<pair_residue[mode_combination*2+1]<<endl;
+   if(flag_debug==2)cout<<"DEBUG"<<flag_debug<<": mode_combination_2 = "<<mode_combination_2<<endl;
+   if(flag_debug==2)cout<<"DEBUG"<<flag_debug<<": second minimum distance = "<<dist_pair[mode_combination_2]<<endl;
+   if(flag_debug==2)cout<<"DEBUG"<<flag_debug<<": residue pair = "<<pair_residue[mode_combination_2*2]<<"-"<<pair_residue[mode_combination_2*2+1]<<endl;
+*/
+
+/*
+++++++ Calculate average of distances of two combinations ++++++
+ver 4.1
+*/
+ 
+   int mode_combination = -1, mode_combination_2 = -1;
+   double ave[2];
+   ave[0] = (dist_pair[0] + dist_pair[3])/2;
+   ave[1] = (dist_pair[1] + dist_pair[2])/2;
+   if(ave[0] < ave[1]){
+      mode_combination = 0;
+      mode_combination_2 = 3;
+   }
+   else{
+      mode_combination = 1;
+      mode_combination_2 = 2;
+   }
+   
+
+/*
+++++++ Judgement of major or minor grooves ++++++
+*/
+   string mode_majorminor_1, mode_majorminor_2; 
+   int mid_point1 = (chain_a_b - chain_a_a + 1)/2 ;
+   if(flag_debug==3)cout<<"DEBUG"<<flag_debug<<": mid_point1 = "<<mid_point1<<endl;
+   int tmp_resi1 = pair_residue[mode_combination*2] - chain_a_a + 1;
+   int tmp_resi2 = pair_residue[mode_combination_2*2] - chain_b_a + 1;
+   if( tmp_resi1 < mid_point1+1 && tmp_resi2 - tmp_resi1 >= 0 ){
+      mode_majorminor_1 = "major";
+   }
+   else if( tmp_resi1 >= mid_point1+1 && tmp_resi2 - tmp_resi1 < 0 ){
+      mode_majorminor_1 = "major";
+   }
+   else if( tmp_resi1 < mid_point1+1 && tmp_resi2 - tmp_resi1 < 0 ){
+      mode_majorminor_1 = "minor";
+   }
+   else if( tmp_resi1 >= mid_point1+1 && tmp_resi2 - tmp_resi1 >= 0 ){
+      mode_majorminor_1 = "minor";
+   }
+   else{
+      cerr<<"ERROR: Major or minor grooves cannot be defined."<<endl;
+      cerr<<"ERROR: tmp_resi1 = "<<tmp_resi1<<endl;
+      cerr<<"ERROR: tmp_resi2 = "<<tmp_resi2<<endl;
+   }
+   int mid_point2 = (chain_c_b - chain_c_a + 1)/2 ;
+   if(flag_debug==3)cout<<"DEBUG"<<flag_debug<<": mid_point2 = "<<mid_point2<<endl;
+   int tmp_resi3 = pair_residue[mode_combination*2+1] - chain_c_a + 1;
+   int tmp_resi4 = pair_residue[mode_combination_2*2+1] - chain_d_a + 1;
+   if( tmp_resi3 < mid_point2+1 && tmp_resi4 - tmp_resi3 >= 0 ){
+      mode_majorminor_2 = "major";
+   }
+   else if( tmp_resi3 >= mid_point2+1 && tmp_resi4 - tmp_resi3 < 0 ){
+      mode_majorminor_2 = "major";
+   }
+   else if( tmp_resi3 < mid_point2+1 && tmp_resi4 - tmp_resi3 < 0 ){
+      mode_majorminor_2 = "minor";
+   }
+   else if( tmp_resi3 >= mid_point2+1 && tmp_resi4 - tmp_resi3 >= 0 ){
+      mode_majorminor_2 = "minor";
+   }
+   else{
+      cerr<<"ERROR: Major or minor grooves cannot be defined."<<endl;
+      cerr<<"ERROR: tmp_resi3 = "<<tmp_resi3<<endl;
+      cerr<<"ERROR: tmp_resi4 = "<<tmp_resi4<<endl;
+   }
+   cout<<"Mode = "<<mode_majorminor_1<<"-"<<mode_majorminor_2<<endl;
+
+/*
+++++++ Output file ++++++
+*/
+   fprintf(fout1,"%s-%s %d-%d %.3f %d-%d %.3f %s \n", 
+         mode_majorminor_1.c_str(), mode_majorminor_2.c_str(), 
+         pair_residue[mode_combination*2], pair_residue[mode_combination*2+1], dist_pair[mode_combination],
+         pair_residue[mode_combination_2*2], pair_residue[mode_combination_2*2+1], dist_pair[mode_combination_2],
+         pdbname.c_str());
+
+   fclose(fout1);
+   return 0;
+}
+

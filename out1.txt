@@ -1,0 +1,1 @@
+minor-major 33-82 5.226 62-132 5.588 ../../120mM_longeq/02angle/out_do3/conf5000.pdb 

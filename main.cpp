@@ -24,7 +24,7 @@ int main(int argc, char *argv[]){
 
 // DO pcanishi
    int rtrn = majorminor( inp1 );
-   if(rtrn==0)cout<<"\nend of pcanishi\n";
+   if(rtrn==0)cout<<"\nend of program nishi\n";
 
 
 // END

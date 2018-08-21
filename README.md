@@ -1,5 +1,2 @@
-# pcanishi
+# majorminor
 
-principal component analysis
-potential of mean force
-reweighting

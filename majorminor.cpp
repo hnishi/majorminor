@@ -1,6 +1,6 @@
 #include"nlib.h"
 
-string majorminor_version = "5.1";
+string majorminor_version = "5.2";
 /*
 ver2.0 RANGE_COM was implemented
 ver3.0 all pairs within 2.0 nm would be written in the output
@@ -11,6 +11,7 @@ ver4.3 pair was resitricted to i +- 10 bp --> exception was generated
 ver4.4 refactoring
 ver5.0 add new mode "base-backbone"
 ver5.1 change output format
+ver5.2 judgement of base-backbone was improved. (two pairs were required) 
 */
 
 int flag_debug = 0;
@@ -52,9 +53,9 @@ int majorminor(  Inp_nishi inp1 ){
 ++++++ Search closest point ++++++
 Minumum distances betwween phosphorus atoms of all phosphate backbones are calculated
 */
-   int pair_residue[10];
-   double pair_dist[5] = {999999, 999999, 999999, 999999, 999999};
-   int flag_major_backbone; // 0 = major-backbone, 1 = backbone-major
+   int pair_residue[12];
+   double pair_dist[6] = {999999, 999999, 999999, 999999, 999999, 999999};
+   int flag_major_backbone = -1; // 0 = major-backbone, 1 = backbone-major
 
    for(unsigned int i_atom = 0; i_atom < pdb1->total_atom; i_atom++){
       if( ((pdb1->rnum[i_atom] >= chain_a_a && pdb1->rnum[i_atom] <= chain_a_b)
@@ -69,19 +70,19 @@ Minumum distances betwween phosphorus atoms of all phosphate backbones are calcu
                double dist = sqrt(sq(pdb1->coox[j_atom] - pdb1->coox[i_atom])
                      +sq(pdb1->cooy[j_atom] - pdb1->cooy[i_atom])
                      +sq(pdb1->cooz[j_atom] - pdb1->cooz[i_atom]));
-               if(dist < pair_dist[4]){
+               if(dist < pair_dist[4] && pdb1->atmn[i_atom] == "P" && pdb1->atmn[j_atom] == "O6" ){
+                  if(flag_debug==5)cout<<"DEBUG: pair_dist[4]: "<<pair_dist[4]<<" "<<pair_residue[8]<<" "<<pair_residue[9]<<endl;
+                  if(flag_debug==5)cout<<"DEBUG: pdb1->atmn[i_atom], pdb1->atmn[j_atom] = "<<pdb1->atmn[i_atom]<<"-"<<pdb1->atmn[j_atom]<<endl;
+                  flag_major_backbone = 1;
                   pair_dist[4] = dist;
                   pair_residue[8] = pdb1->rnum[i_atom];
                   pair_residue[9] = pdb1->rnum[j_atom];
-                  if(flag_debug==5)cout<<"DEBUG: pair_dist[4]: "<<pair_dist[4]<<" "<<pair_residue[8]<<" "<<pair_residue[9]<<endl;
-                  if(flag_debug==5)cout<<"DEBUG: pdb1->atmn[i_atom], pdb1->atmn[j_atom] = "<<pdb1->atmn[i_atom]<<"-"<<pdb1->atmn[j_atom]<<endl;
-                  if( pdb1->atmn[i_atom] == "P" && pdb1->atmn[j_atom] == "O6" ){
-                     flag_major_backbone = 1;
-                  }
-                  else if (pdb1->atmn[i_atom] == "O6" && pdb1->atmn[j_atom] == "P"){
-                     flag_major_backbone = 0;
-                  }
-                  else{return -1;}
+               }
+               if(dist < pair_dist[5] && pdb1->atmn[i_atom] == "O6" && pdb1->atmn[j_atom] == "P" ){
+                  flag_major_backbone = 0;
+                  pair_dist[5] = dist;
+                  pair_residue[10] = pdb1->rnum[i_atom];
+                  pair_residue[11] = pdb1->rnum[j_atom];
                }
             }
          }
@@ -260,7 +261,7 @@ ver 4.1
       cerr<<"ERROR: tmp_resi3 = "<<tmp_resi3<<endl;
       cerr<<"ERROR: tmp_resi4 = "<<tmp_resi4<<endl;
    }
-   if( pair_dist[4] < dist_base ){
+   if( pair_dist[4] < dist_base && pair_dist[5] < dist_base ){
       if( flag_major_backbone == 0 ){ // 0 = major-backbone, 1 = backbone-major
          mode_majorminor_1 = "base";
          mode_majorminor_2 = "backbone";
@@ -288,11 +289,11 @@ ver 4.1
          pdbname.c_str());
    }
 */
-   fprintf(fout1,"%s-%s %d-%d %.3f %d-%d %.3f %d-%d %.3f %s \n", 
+   fprintf(fout1,"%s-%s %d-%d %.3f %d-%d %.3f %d-%d %.3f %d-%d %.3f %s \n", 
       mode_majorminor_1.c_str(), mode_majorminor_2.c_str(), 
       pair_residue[mode_combination*2], pair_residue[mode_combination*2+1], pair_dist[mode_combination],
       pair_residue[mode_combination_2*2], pair_residue[mode_combination_2*2+1], pair_dist[mode_combination_2],
-      pair_residue[8], pair_residue[9], pair_dist[4], pdbname.c_str());
+      pair_residue[8], pair_residue[9], pair_dist[4], pair_residue[10], pair_residue[11], pair_dist[5], pdbname.c_str());
 
    fclose(fout1);
    return 0;

@@ -24,7 +24,13 @@ int main(int argc, char *argv[]){
 
 // DO pcanishi
    int rtrn = majorminor( inp1 );
-   if(rtrn==0)cout<<"\nend of program nishi\n";
+   if(rtrn==0){
+      cout<<"\nSuccessful end of the program\n";
+   }
+   else{
+      cerr<<"\nError: Unknow error occured in the function.\n";
+   }
+
 
 
 // END

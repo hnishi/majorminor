@@ -1,6 +1,6 @@
 #include"nlib.h"
 
-string majorminor_version = "4.4";
+string majorminor_version = "5.1";
 /*
 ver2.0 RANGE_COM was implemented
 ver3.0 all pairs within 2.0 nm would be written in the output
@@ -9,6 +9,8 @@ ver4.1 minimum and second minimum --> calculate average of distances of two comb
 ver4.2 way of residue count was changed to improve judgement of major or minor grooves and bugs were fixed. 
 ver4.3 pair was resitricted to i +- 10 bp --> exception was generated 
 ver4.4 refactoring
+ver5.0 add new mode "base-backbone"
+ver5.1 change output format
 */
 
 int flag_debug = 0;
@@ -33,6 +35,7 @@ int majorminor(  Inp_nishi inp1 ){
    int chain_c_b = atoi(inp1.read("CHAIN_C_b").c_str());
    int chain_d_a = atoi(inp1.read("CHAIN_D_a").c_str());
    int chain_d_b = atoi(inp1.read("CHAIN_D_b").c_str());
+   double dist_base = atof(inp1.read("DIST_BASE").c_str()); //cutoff distance to define major-backbone mode
 
    FILE *fout1;
    if((fout1 = fopen(outfile1.c_str(),"w")) == NULL ){
@@ -49,10 +52,40 @@ int majorminor(  Inp_nishi inp1 ){
 ++++++ Search closest point ++++++
 Minumum distances betwween phosphorus atoms of all phosphate backbones are calculated
 */
-   int pair_residue[8];
-   double pair_dist[4] = {999999, 999999, 999999, 999999};
+   int pair_residue[10];
+   double pair_dist[5] = {999999, 999999, 999999, 999999, 999999};
+   int flag_major_backbone; // 0 = major-backbone, 1 = backbone-major
 
    for(unsigned int i_atom = 0; i_atom < pdb1->total_atom; i_atom++){
+      if( ((pdb1->rnum[i_atom] >= chain_a_a && pdb1->rnum[i_atom] <= chain_a_b)
+            || (pdb1->rnum[i_atom] >= chain_b_a && pdb1->rnum[i_atom] <= chain_b_b))
+            && (pdb1->atmn[i_atom] == "P" 
+            || (pdb1->atmn[i_atom] == "O6" && pdb1->resn[i_atom] == "DG")) ){ 
+         for(unsigned int j_atom = 0; j_atom < pdb1->total_atom; j_atom++){
+            if( ((pdb1->rnum[j_atom] >= chain_c_a && pdb1->rnum[j_atom] <= chain_c_b)
+                  || (pdb1->rnum[j_atom] >= chain_d_a && pdb1->rnum[j_atom] <= chain_d_b))
+                  && ((pdb1->atmn[i_atom] == "P" && pdb1->atmn[j_atom] == "O6")
+                  || (pdb1->atmn[i_atom] == "O6" && pdb1->atmn[j_atom] == "P"))){ 
+               double dist = sqrt(sq(pdb1->coox[j_atom] - pdb1->coox[i_atom])
+                     +sq(pdb1->cooy[j_atom] - pdb1->cooy[i_atom])
+                     +sq(pdb1->cooz[j_atom] - pdb1->cooz[i_atom]));
+               if(dist < pair_dist[4]){
+                  pair_dist[4] = dist;
+                  pair_residue[8] = pdb1->rnum[i_atom];
+                  pair_residue[9] = pdb1->rnum[j_atom];
+                  if(flag_debug==5)cout<<"DEBUG: pair_dist[4]: "<<pair_dist[4]<<" "<<pair_residue[8]<<" "<<pair_residue[9]<<endl;
+                  if(flag_debug==5)cout<<"DEBUG: pdb1->atmn[i_atom], pdb1->atmn[j_atom] = "<<pdb1->atmn[i_atom]<<"-"<<pdb1->atmn[j_atom]<<endl;
+                  if( pdb1->atmn[i_atom] == "P" && pdb1->atmn[j_atom] == "O6" ){
+                     flag_major_backbone = 1;
+                  }
+                  else if (pdb1->atmn[i_atom] == "O6" && pdb1->atmn[j_atom] == "P"){
+                     flag_major_backbone = 0;
+                  }
+                  else{return -1;}
+               }
+            }
+         }
+      }
       if( pdb1->rnum[i_atom] >= chain_a_a && pdb1->rnum[i_atom] <= chain_a_b 
             && pdb1->atmn[i_atom] == "P" ){ 
          for(unsigned int j_atom = 0; j_atom < pdb1->total_atom; j_atom++){
@@ -227,16 +260,39 @@ ver 4.1
       cerr<<"ERROR: tmp_resi3 = "<<tmp_resi3<<endl;
       cerr<<"ERROR: tmp_resi4 = "<<tmp_resi4<<endl;
    }
+   if( pair_dist[4] < dist_base ){
+      if( flag_major_backbone == 0 ){ // 0 = major-backbone, 1 = backbone-major
+         mode_majorminor_1 = "base";
+         mode_majorminor_2 = "backbone";
+      }
+      else if( flag_major_backbone == 1 ){
+         mode_majorminor_1 = "backbone";
+         mode_majorminor_2 = "base";
+      }
+   }
    cout<<"Mode = "<<mode_majorminor_1<<"-"<<mode_majorminor_2<<endl;
 
 /*
 ++++++ Output file ++++++
 */
-   fprintf(fout1,"%s-%s %d-%d %.3f %d-%d %.3f %s \n", 
+/*   if( pair_dist[4] < dist_base ){
+      fprintf(fout1,"%s-%s %d-%d %.3f %s \n", 
+         mode_majorminor_1.c_str(), mode_majorminor_2.c_str(), 
+         pair_residue[8], pair_residue[9], pair_dist[4], pdbname.c_str());
+   }
+   else{
+      fprintf(fout1,"%s-%s %d-%d %.3f %d-%d %.3f %s \n", 
          mode_majorminor_1.c_str(), mode_majorminor_2.c_str(), 
          pair_residue[mode_combination*2], pair_residue[mode_combination*2+1], pair_dist[mode_combination],
          pair_residue[mode_combination_2*2], pair_residue[mode_combination_2*2+1], pair_dist[mode_combination_2],
          pdbname.c_str());
+   }
+*/
+   fprintf(fout1,"%s-%s %d-%d %.3f %d-%d %.3f %d-%d %.3f %s \n", 
+      mode_majorminor_1.c_str(), mode_majorminor_2.c_str(), 
+      pair_residue[mode_combination*2], pair_residue[mode_combination*2+1], pair_dist[mode_combination],
+      pair_residue[mode_combination_2*2], pair_residue[mode_combination_2*2+1], pair_dist[mode_combination_2],
+      pair_residue[8], pair_residue[9], pair_dist[4], pdbname.c_str());
 
    fclose(fout1);
    return 0;
